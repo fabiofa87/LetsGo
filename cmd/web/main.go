@@ -22,7 +22,7 @@ func main() {
 
 	flag.Parse()
 
-	dsn := flag.String("dsn", "fabio-faria:gAw5%lm7%L@teKFi@m@N@(35.226.146.116:3306)/maryam-fabio-faria", "MySQL data source name")
+	dsn := flag.String("dsn", "fabio-faria:gAw5%lm7%L@teKFi@m@N@(35.226.146.116:3306)/maryam-fabio-faria?parseTime=true", "MySQL data source name")
 
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 
