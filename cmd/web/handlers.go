@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"html/template"
 	"letsgo.com/snippetbox/pkg/models"
 	"net/http"
 	"strconv"
@@ -10,34 +11,31 @@ import (
 
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
-		http.NotFound(w, r)
+		app.notFound(w)
 		return
 	}
-
 	s, err := app.snippets.Latest()
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
-	for _, snippet := range s {
-		fmt.Fprintln(w, "%v\n", snippet)
+
+	data := &templateData{Snippets: s}
+	files := []string{
+		"./ui/html/home.page.tmpl",
+		"./ui/html/base.layout.tmpl",
+		"./ui/html/footer.partial.tmpl",
+	}
+	ts, err := template.ParseFiles(files...)
+	if err != nil {
+		app.serverError(w, err)
+		return
 	}
 
-	//files := []string{
-	//	"./ui/html/home.page.tmpl",
-	//	"./ui/html/base.layout.tmpl",
-	//	"./ui/html/footer.partial.tmpl",
-	//}
-	//
-	//ts, err := template.ParseFiles(files...)
-	//if err != nil {
-	//	app.serverError(w, err)
-	//	return
-	//}
-	//err = ts.Execute(w, nil)
-	//if err != nil {
-	//	app.serverError(w, err)
-	//}
+	err = ts.Execute(w, data)
+	if err != nil {
+		app.serverError(w, err)
+	}
 }
 
 func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
@@ -46,9 +44,7 @@ func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
 		app.notFound(w)
 		return
 	}
-
 	s, err := app.snippets.Get(id)
-
 	if err != nil {
 		if errors.Is(err, models.ErrNoRecord) {
 			app.notFound(w)
@@ -57,10 +53,11 @@ func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-
-	fmt.Fprintln(w, "%v", s)
+	// Use the new render helper.
+	app.render(w, r, "show.page.tmpl", &templateData{
+		Snippet: s,
+	})
 }
-
 func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", http.MethodPost)
@@ -78,9 +75,4 @@ func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, fmt.Sprintf("/snippet?id=%d", id), http.StatusSeeOther)
-}
-
-func downloadHandler(w http.ResponseWriter, r *http.Request) {
-
-	http.ServeFile(w, r, ".ui/static/file.zip")
 }
